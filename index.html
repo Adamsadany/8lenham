@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Community Posts</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 0 10px;
+    }
+    form {
+      margin-bottom: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    input, textarea, button {
+      padding: 10px;
+      font-size: 1rem;
+    }
+    button {
+      background-color: #0070f3;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #005bb5;
+    }
+    .post {
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 15px;
+      margin-bottom: 15px;
+    }
+    .post h3 {
+      margin: 0 0 5px 0;
+    }
+    .post small {
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Community Posts</h1>
+
+  <!-- Post Submission Form -->
+  <form id="post-form">
+    <input type="text" id="title" placeholder="Title" required />
+    <textarea id="message" placeholder="Message" rows="4" required></textarea>
+    <input type="text" id="theme" placeholder="Theme" required />
+    <button type="submit">Submit Post</button>
+  </form>
+
+  <!-- Container to display posts -->
+  <div id="posts-container"></div>
+
+  <!-- Supabase client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/supabase.min.js"></script>
+
+  <script>
+    // Your Supabase project info
+    const SUPABASE_URL = 'https://wrncneyoddihuschjzkq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndybmNuZXlvZGRpaHVzY2hqemtxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1NjQ1MzksImV4cCI6MjA2MzE0MDUzOX0.zqq3qiW_DOLGEfvADoSXh8tR6I3DGBWxsF5CUY-G50Q';
+
+    // Create Supabase client instance
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Escape HTML function for safety
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+    }
+
+    // Fetch and display posts
+    async function fetchAndDisplayPosts() {
+      console.log('Fetching posts...');
+      const { data: posts, error } = await supabaseClient
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching posts:', error);
+        return;
+      }
+
+      console.log('Posts fetched:', posts);
+
+      const container = document.getElementById('posts-container');
+      container.innerHTML = '';
+
+      posts.forEach(post => {
+        const postEl = document.createElement('div');
+        postEl.classList.add('post');
+        postEl.innerHTML = `
+          <h3>${escapeHtml(post.title)}</h3>
+          <p>${escapeHtml(post.message)}</p>
+          <small>Theme: ${escapeHtml(post.theme)}</small>
+          <hr>
+        `;
+        container.appendChild(postEl);
+      });
+    }
+
+    // Handle form submission
+    const form = document.getElementById('post-form');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const title = document.getElementById('title').value.trim();
+      const message = document.getElementById('message').value.trim();
+      const theme = document.getElementById('theme').value.trim();
+
+      if (!title || !message || !theme) {
+        alert('Please fill in all fields.');
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from('posts')
+        .insert([{ title, message, theme }]);
+
+      if (error) {
+        alert('Error submitting post: ' + error.message);
+        return;
+      }
+
+      form.reset();
+      fetchAndDisplayPosts();
+    });
+
+    // Initial load of posts
+    fetchAndDisplayPosts();
+  </script>
+
+</body>
+</html>
